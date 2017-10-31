@@ -1,0 +1,172 @@
+Prototipo para clasificación de imágenes
+
+Eduar Moisés Castrillo Velilla
+Ingeniero de Sistemas y Computación, Universidad Nacional de Colombia
+Tel: 320 436 97 23
+e-mail: eduarcastrillo@gmail.com
+
+----------------
+- Introducción -
+----------------
+
+Ejercicio práctico como parte del proceso de entrevista en Rokk3rLab para el cargo de
+Machine Learning Engineer.
+
+------------
+- Problema -
+------------
+
+Dado un conjunto de imágenes de rostros, clasificarlas en dos categorías: 
+ 1) Muestra los dientes
+ 2) No muestra los dientes
+
+Para ello se debe construir un sistema de clasificación automático utilizando técnicas de
+machine learning.
+
+------------
+- Solución -
+------------
+
+Lo que se necesita hacer es clasificar imágenes. Varias técnicas existen para llevar a cabodicha tarea, 
+pero una técnica de aprendizaje de máquinia que ha demostrado excelentes resultados y que es estado-del-arte
+es la utilización de redes neuronales convolucionales (CNNs). Por ello, he decidido utilizar dicha técnica.
+
+Existen numerosas librerías para diseñar, entrenar y clasificar con CNNs. Una de ellas es TensorFlow, que es
+relativamente reciente. 
+
+************
+* Pipeline *
+************
+
+ 1) Clasificar manualmente las imágenes de entrenamiento proporcionadas
+ 2) Entrenar y validar una CNN con las imágenes manualmente clasificadas
+ 3) Clasificar automáticamente las imagenes de prueba proporcionadas
+
+###############################################
+# Preprocesamiento de las imágenes con OpenCV #
+###############################################
+
+  1 Detectar el rostro en la imágen de entrada con un Meta-clasificador en cascada HaaR
+  2 Detectar la boca dentro de la región del rostro con un Meta-clasificador en cascada HaaR
+  3 Ecualizar en escala de grises la región de la boca para resaltar carácterísticas diferenciadoras
+  4 Reducir el tamaño de la región de interés aplicando una interpolación lineal (podría ser cúbica, entre otras)
+    La reducción facilita los tiempos de aprendizaje de la CNN
+  4 Aplicar transformaciones a la imágen para duplicarla con el fin de aumentar el tamaño del conjunto de entrenamiento
+     4.1 Espejo vertical
+
+  NOTA: Tal vez se puedan utilizar otras técnicas para detectar las regiones de interés (HOG, LBP, etc.)
+
+##################################
+# TENSORFLOW y Transfer-Learning #
+##################################
+
+Debido a limitaciones de tiempo, capacidad de hardware y cantidad de datos de entrenamiento, he decidio utilizar la técnica de
+transferencia de conocimiento (transfer learning) para entrenar la CNN.
+Con pocos datos de entrenamiento (incluso después de aumentar el conjunto mendiante transformaciones), es posible que una red
+neuronal entrenada desde cero no presente buenos resultados, además no cuento con suficiente tiempo.
+
+En internet se pueden encontrar varias CNNs entrenadas para reconocimiento de imágenes, una de ellas es InceptionV3, la cuál he
+decido utilizar. Para reentrenar la red he utilizado la librería de TensorFlow que facilita mucho el trabajo. El proyecto codelab,
+proporciona un script para ejecutar transfer-learning en Python y C++.
+Transfer-learning es una buena forma de evitar reinventar la rueda. Aprovechando CNNs muy bien entrenadas permite que el proceso
+de entrenamiento no tome días, sino minutos u horas.
+ 
+###########################
+# Ejecución del Prototipo #
+###########################
+
+El prototipo lo he desarrollado en Python 2.7
+
+Herramientas y librerías Necesarias:
+ - Python 2.7
+ - Tensorflow
+ - OpenCV
+ - Scikit-learn
+ - Scikit-image * 
+ - numpy
+ - scipy
+ - Scikit-neuralnetwork *
+
+ * Si desean ejecutar el segundo prototipo, para diseñar y entrenar la red desde cero.
+
+EJECUCIÓN PRIMER PROTOTIPO:
+  1. Instale todas las herramientas y librerías necesarias anteriormente descritas
+ 
+  2. Compruebe que estén en funcionamiento las herramientas y librerías (para probar tenrsorflow ejecute el archivo llamado tf_test.py)
+
+  4 Proporcione un directorio con las imágenes de entrenamiento. Para cada categoría, incluya un subdirectorio 
+    que contenga las imágenes de dicha categoría. Puede utilizar el directorio de imágenes que he clasificado manualmente: /teeth_images_org/.
+    Para clasificar imagenes manualmente he proporcionado un script que facilita el proceso.
+
+  5. Para entrenar la CNN ejecute:
+   
+  python tf_trainer.py --bottleneck_dir=bottlenecks --how_many_training_steps=4000 --model_dir=inception --summaries_dir=training_summaries/basic --output_graph=retrained_graph.pb --output_labels=retrained_labels.txt --image_dir=teeth_images_org/ --learning_rate=0.005
+
+  5. Para clasificar las imágenes ejecute:
+  
+  python tf_classifier.py ./B ./tf_results
+
+  * ./B es el directorio donde se encuentran la imágenes a clasificar
+  * ./results es el directorio donde se almacenaran las imágenes clasificadas, con un subdirectorio por cada categoría.
+  
+
+EJECUCIÓN SEGUNDO PROTOTIPO:
+  
+  1) Para entrenar la CNN ejecute:
+
+  python sknn_trainer.py ./all_teeth_org/ cnn_graph.nn ov 0
+
+  2) Para clasificar las imágenes ejecute:
+
+  python sknn_classifier.py ./B ./sknn_results cnn_graph.nn
+  
+##############
+# VALIDACIÓN #
+##############
+
+La CNN entrenada proporciona un accuracy promedio del 92.0% y valores de entropía cruzada no mayores a 0.3.
+No tuve tiempo de hacer un estudio de las otras métricas F1, recall, precision, etc. Esta semana estuvo algo pesada en la U y el trabajo. 
+Pero puedo adicionarlas si lo desean.
+
+-------------------
+- Mejoras futuras -
+-------------------
+
+ 1) Mejorar en general la etapa de pre-procesamiento de las imágenes:
+    * eliminación de perspectiva del rostro mediante landmark detection y affine transformations
+    * Utilizar técnicas adaptativas de ecualización de la región de interés. Esto puede ayudar a acentuar mejor las características
+      diferenciadoras
+    * Entre otras
+ 2) Aumentar el tamaño del conjunto de datos de entrenamiento:
+    * Obteniendo más imágenes de la fuente
+    * Aplicar traslaciones (aunque no es tan necesario pues las CNNs son invariantes a esto)
+    * Aplicar rotaciones (aunque no es tan necesario pues las CNNs son invariantes a esto en cierto grado)
+      
+ 3) Ejecutar Validación cruzada para seleccionar los parametros de entrenamiento que mejor se ajusten al problema. En este prototipo he trabajado
+    con la parametrización usualmente utilizada.
+
+ 4) Diseñar y entrenar una red desde cero.
+
+----------------
+- Conclusiones -
+----------------
+
+1) Este problema de clasificación puede ser facilmente prototipado utilizando técnicas de clasificación mediante CNNs. Para ello existen numerosas librerías
+  que facilitan el trabajo, una de ellas es TensorFlow. TensorFlow y Transfer Learning permiten entrenar CNNs bajo limitaciones
+  de tiempo, hardware y cantidad datos de entrenamiento.
+
+2) La CNN ha mostrado un valores altos de precisión y valores bajos de entropía cruzada.
+
+3) Sería interesante ejecutar el prototipo que diseña y entrena la red desde cero. Los scripts necesarios están incluidos con mi diseño.
+
+##############
+# NOTA FINAL #
+##############
+
+1) Hubiese querido entrenar la red con el segundo prototipo, pero por cuestiones de tiempo no me fue posible. Los scripts están disponibles si desean probar, o yo podría
+enviarles los resultados otro día, cuando haya entrenado la red (requiere tiempo).
+
+Estoy atento a cualquier duda o inquietud sobre este trabajo.
+
+Saludos,
+
